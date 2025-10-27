@@ -735,66 +735,77 @@ class MultiExchangeCollector:
         self.oi_api = OpenInterestAPI()
     
     def _initialize_exchanges(self) -> Dict:
-    """Initialize exchanges with fallback"""
+    """Initialize multiple exchanges with priority order"""
     exchanges = {}
     
-    # Bybit - No restrictions
+    # Priority 1: Bybit (no geo-restrictions)
     try:
         exchanges['bybit'] = ccxt.bybit({
             'enableRateLimit': True,
             'options': {'defaultType': 'linear'},
             'timeout': 30000
         })
-    except:
-        pass
+        st.success("✅ Bybit connected")
+    except Exception as e:
+        st.warning(f"⚠️ Bybit failed: {e}")
     
-    # OKX - Works globally
+    # Priority 2: OKX (reliable)
     try:
         exchanges['okx'] = ccxt.okx({
             'enableRateLimit': True,
             'options': {'defaultType': 'swap'},
             'timeout': 30000
         })
-    except:
-        pass
+        st.success("✅ OKX connected")
+    except Exception as e:
+        st.warning(f"⚠️ OKX failed: {e}")
     
-    # KuCoin - Very permissive
+    # Priority 3: KuCoin (very permissive)
     try:
         exchanges['kucoin'] = ccxt.kucoin({
             'enableRateLimit': True,
             'timeout': 30000
         })
-    except:
-        pass
+        st.success("✅ KuCoin connected")
+    except Exception as e:
+        st.warning(f"⚠️ KuCoin failed: {e}")
     
-    # Gate.io
+    # Priority 4: Gate.io (backup)
     try:
         exchanges['gateio'] = ccxt.gateio({
             'enableRateLimit': True,
             'timeout': 30000
         })
-    except:
-        pass
+        st.success("✅ Gate.io connected")
+    except Exception as e:
+        st.warning(f"⚠️ Gate.io failed: {e}")
     
-    # MEXC
+    # Priority 5: MEXC (backup)
     try:
         exchanges['mexc'] = ccxt.mexc({
             'enableRateLimit': True,
             'options': {'defaultType': 'swap'},
             'timeout': 30000
         })
-    except:
-        pass
+        st.success("✅ MEXC connected")
+    except Exception as e:
+        st.warning(f"⚠️ MEXC failed: {e}")
     
-    # Skip Binance atau tangani error
+    # Last attempt: Binance (will likely fail on Streamlit Cloud)
     try:
         exchanges['binance'] = ccxt.binance({
             'enableRateLimit': True,
             'options': {'defaultType': 'future'},
             'timeout': 30000
         })
-    except:
-        pass  # Ignore jika restricted
+        st.success("✅ Binance connected")
+    except Exception as e:
+        st.warning(f"⚠️ Binance unavailable (geo-restricted): {str(e)[:50]}")
+    
+    if not exchanges:
+        st.error("❌ No exchanges available!")
+    else:
+        st.info(f"✅ Connected to {len(exchanges)} exchange(s)")
     
     return exchanges
     
