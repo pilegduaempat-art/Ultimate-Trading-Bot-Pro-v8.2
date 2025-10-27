@@ -735,143 +735,101 @@ class MultiExchangeCollector:
         self.oi_api = OpenInterestAPI()
     
     def _initialize_exchanges(self) -> Dict:
-    """Initialize multiple exchanges with priority order"""
-    exchanges = {}
-    
-    # Priority 1: Bybit (no geo-restrictions)
-    try:
-        exchanges['bybit'] = ccxt.bybit({
-            'enableRateLimit': True,
-            'options': {'defaultType': 'linear'},
-            'timeout': 30000
-        })
-        st.success("✅ Bybit connected")
-    except Exception as e:
-        st.warning(f"⚠️ Bybit failed: {e}")
-    
-    # Priority 2: OKX (reliable)
-    try:
-        exchanges['okx'] = ccxt.okx({
-            'enableRateLimit': True,
-            'options': {'defaultType': 'swap'},
-            'timeout': 30000
-        })
-        st.success("✅ OKX connected")
-    except Exception as e:
-        st.warning(f"⚠️ OKX failed: {e}")
-    
-    # Priority 3: KuCoin (very permissive)
-    try:
-        exchanges['kucoin'] = ccxt.kucoin({
-            'enableRateLimit': True,
-            'timeout': 30000
-        })
-        st.success("✅ KuCoin connected")
-    except Exception as e:
-        st.warning(f"⚠️ KuCoin failed: {e}")
-    
-    # Priority 4: Gate.io (backup)
-    try:
-        exchanges['gateio'] = ccxt.gateio({
-            'enableRateLimit': True,
-            'timeout': 30000
-        })
-        st.success("✅ Gate.io connected")
-    except Exception as e:
-        st.warning(f"⚠️ Gate.io failed: {e}")
-    
-    # Priority 5: MEXC (backup)
-    try:
-        exchanges['mexc'] = ccxt.mexc({
-            'enableRateLimit': True,
-            'options': {'defaultType': 'swap'},
-            'timeout': 30000
-        })
-        st.success("✅ MEXC connected")
-    except Exception as e:
-        st.warning(f"⚠️ MEXC failed: {e}")
-    
-    # Last attempt: Binance (will likely fail on Streamlit Cloud)
-    try:
-        exchanges['binance'] = ccxt.binance({
-            'enableRateLimit': True,
-            'options': {'defaultType': 'future'},
-            'timeout': 30000
-        })
-        st.success("✅ Binance connected")
-    except Exception as e:
-        st.warning(f"⚠️ Binance unavailable (geo-restricted): {str(e)[:50]}")
-    
-    if not exchanges:
-        st.error("❌ No exchanges available!")
-    else:
-        st.info(f"✅ Connected to {len(exchanges)} exchange(s)")
-    
-    return exchanges
+        """Initialize all supported exchanges"""
+        exchanges = {}
+        
+        try:
+            exchanges['binance'] = ccxt.binance({
+                'enableRateLimit': True,
+                'options': {'defaultType': 'future'},
+                'timeout': 30000
+            })
+        except:
+            pass
+        
+        try:
+            exchanges['bybit'] = ccxt.bybit({
+                'enableRateLimit': True,
+                'options': {'defaultType': 'linear'},
+                'timeout': 30000
+            })
+        except:
+            pass
+        
+        try:
+            exchanges['okx'] = ccxt.okx({
+                'enableRateLimit': True,
+                'options': {'defaultType': 'swap'},
+                'timeout': 30000
+            })
+        except:
+            pass
+        
+        try:
+            exchanges['mexc'] = ccxt.mexc({
+                'enableRateLimit': True,
+                'options': {'defaultType': 'swap'},
+                'timeout': 30000
+            })
+        except:
+            pass
+        
+        return exchanges
     
     def get_top_volatile_pairs(self, limit: int = 10, min_volume: float = 1000000) -> List[str]:
-        """Get most volatile pairs that are actively trading on Binance Futures"""
-        cache_key = f"volatile_pairs_{limit}"
-        
-        if cache_key in self.cache:
-            cached_time, cached_data = self.cache[cache_key]
-            if time.time() - cached_time < self.cache_duration:
-                return cached_data
-        
-        all_pairs = []
-        
-        if 'binance' in self.exchanges:
-            exchange = self.exchanges['binance']
-            try:
-                exchange.load_markets()
-                tickers = exchange.fetch_tickers()
-                
-                for symbol, ticker in tickers.items():
-                    if symbol.endswith('/USDT:USDT'):
-                        base_symbol = symbol.replace('/USDT:USDT', '/USDT')
-                        
-                        if ticker.get('percentage') and ticker.get('quoteVolume'):
-                            volume = ticker.get('quoteVolume', 0)
-                            if volume >= min_volume:
-                                all_pairs.append({
-                                    'symbol': base_symbol,
-                                    'change_pct': abs(ticker['percentage']),
-                                    'volume': volume,
-                                    'exchange': 'binance'
-                                })
-            except Exception as e:
-                st.warning(f"Binance fetch error: {e}")
-        
-        for exchange_name, exchange in self.exchanges.items():
-            if exchange_name == 'binance':
-                continue
-                
-            try:
-                tickers = exchange.fetch_tickers()
-                for symbol, ticker in tickers.items():
-                    if symbol.endswith('/USDT') or symbol.endswith(':USDT'):
-                        base_symbol = symbol.replace(':USDT', '/USDT')
-                        
-                        if ticker.get('percentage') and ticker.get('quoteVolume'):
-                            if ticker['quoteVolume'] >= min_volume:
-                                all_pairs.append({
-                                    'symbol': base_symbol,
-                                    'change_pct': abs(ticker['percentage']),
-                                    'volume': ticker['quoteVolume'],
-                                    'exchange': exchange_name
-                                })
-            except Exception as e:
-                continue
-        
-        if not all_pairs:
-            return []
-        
-        df = pd.DataFrame(all_pairs)
-        df = df.drop_duplicates('symbol').sort_values('change_pct', ascending=False)
-        result = df.head(limit)['symbol'].tolist()
-        
-        self.cache[cache_key] = (time.time(), result)
-        return result
+    """Get most volatile pairs from available exchanges"""
+    cache_key = f"volatile_pairs_{limit}"
+    
+    if cache_key in self.cache:
+        cached_time, cached_data = self.cache[cache_key]
+        if time.time() - cached_time < self.cache_duration:
+            return cached_data
+    
+    all_pairs = []
+    
+    # Coba semua exchange, skip yang error
+    for exchange_name, exchange in self.exchanges.items():
+        try:
+            st.info(f"🔄 Trying {exchange_name}...")
+            exchange.load_markets()
+            tickers = exchange.fetch_tickers()
+            
+            for symbol, ticker in tickers.items():
+                # Filter untuk USDT pairs
+                if '/USDT' in symbol or ':USDT' in symbol:
+                    base_symbol = symbol.replace(':USDT', '/USDT')
+                    
+                    if ticker.get('percentage') and ticker.get('quoteVolume'):
+                        volume = ticker.get('quoteVolume', 0)
+                        if volume >= min_volume:
+                            all_pairs.append({
+                                'symbol': base_symbol,
+                                'change_pct': abs(ticker['percentage']),
+                                'volume': volume,
+                                'exchange': exchange_name
+                            })
+            
+            st.success(f"✅ {exchange_name} fetched successfully!")
+            break  # Jika berhasil, stop loop
+            
+        except Exception as e:
+            st.warning(f"⚠️ {exchange_name} failed: {str(e)[:100]}")
+            continue
+    
+    if not all_pairs:
+        st.error("❌ All exchanges failed. Using fallback pairs...")
+        # Fallback pairs
+        return [
+            'BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'SOL/USDT', 'XRP/USDT',
+            'ADA/USDT', 'DOGE/USDT', 'MATIC/USDT', 'DOT/USDT', 'AVAX/USDT'
+        ]
+    
+    df = pd.DataFrame(all_pairs)
+    df = df.drop_duplicates('symbol').sort_values('change_pct', ascending=False)
+    result = df.head(limit)['symbol'].tolist()
+    
+    self.cache[cache_key] = (time.time(), result)
+    return result
     
     def get_ohlcv(self, symbol: str, timeframe: str = '5m', limit: int = 200) -> Optional[pd.DataFrame]:
         """Get OHLCV data with fallback"""
