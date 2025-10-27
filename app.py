@@ -777,15 +777,15 @@ class MultiExchangeCollector:
         return exchanges
     
     def get_top_volatile_pairs(self, limit: int = 10, min_volume: float = 1000000) -> List[str]:
-    """Get most volatile pairs from available exchanges"""
-    cache_key = f"volatile_pairs_{limit}"
+        """Get most volatile pairs from available exchanges"""
+        cache_key = f"volatile_pairs_{limit}"
     
-    if cache_key in self.cache:
-        cached_time, cached_data = self.cache[cache_key]
-        if time.time() - cached_time < self.cache_duration:
-            return cached_data
+        if cache_key in self.cache:
+            cached_time, cached_data = self.cache[cache_key]
+            if time.time() - cached_time < self.cache_duration:
+                return cached_data
     
-    all_pairs = []
+        all_pairs = []
     
     # Coba semua exchange, skip yang error
     for exchange_name, exchange in self.exchanges.items():
