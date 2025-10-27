@@ -735,76 +735,46 @@ class MultiExchangeCollector:
         self.oi_api = OpenInterestAPI()
     
     def _initialize_exchanges(self) -> Dict:
-    """Initialize all supported exchanges"""
-    exchanges = {}
-    
-    try:
-        # Gunakan Binance Futures dengan proxy/testnet
-        exchanges['binance'] = ccxt.binance({
-            'enableRateLimit': True,
-            'options': {
-                'defaultType': 'future',
-                'adjustForTimeDifference': True,
-            },
-            'timeout': 30000,
-            'hostname': 'fapi.binance.com',  # Gunakan futures API
-        })
-    except:
-        pass
-    
-    # Tambahkan exchange alternatif
-    try:
-        exchanges['binanceus'] = ccxt.binanceus({
-            'enableRateLimit': True,
-            'timeout': 30000
-        })
-    except:
-        pass
-    
-    try:
-        exchanges['bybit'] = ccxt.bybit({
-            'enableRateLimit': True,
-            'options': {'defaultType': 'linear'},
-            'timeout': 30000
-        })
-    except:
-        pass
-    
-    try:
-        exchanges['okx'] = ccxt.okx({
-            'enableRateLimit': True,
-            'options': {'defaultType': 'swap'},
-            'timeout': 30000
-        })
-    except:
-        pass
-    
-    try:
-        exchanges['kucoin'] = ccxt.kucoin({
-            'enableRateLimit': True,
-            'timeout': 30000
-        })
-    except:
-        pass
-    
-    try:
-        exchanges['mexc'] = ccxt.mexc({
-            'enableRateLimit': True,
-            'options': {'defaultType': 'swap'},
-            'timeout': 30000
-        })
-    except:
-        pass
-    
-    try:
-        exchanges['gateio'] = ccxt.gateio({
-            'enableRateLimit': True,
-            'timeout': 30000
-        })
-    except:
-        pass
-    
-    return exchanges
+        """Initialize all supported exchanges"""
+        exchanges = {}
+        
+        try:
+            exchanges['binance'] = ccxt.binance({
+                'enableRateLimit': True,
+                'options': {'defaultType': 'future'},
+                'timeout': 30000
+            })
+        except:
+            pass
+        
+        try:
+            exchanges['bybit'] = ccxt.bybit({
+                'enableRateLimit': True,
+                'options': {'defaultType': 'linear'},
+                'timeout': 30000
+            })
+        except:
+            pass
+        
+        try:
+            exchanges['okx'] = ccxt.okx({
+                'enableRateLimit': True,
+                'options': {'defaultType': 'swap'},
+                'timeout': 30000
+            })
+        except:
+            pass
+        
+        try:
+            exchanges['mexc'] = ccxt.mexc({
+                'enableRateLimit': True,
+                'options': {'defaultType': 'swap'},
+                'timeout': 30000
+            })
+        except:
+            pass
+        
+        return exchanges
     
     def get_top_volatile_pairs(self, limit: int = 10, min_volume: float = 1000000) -> List[str]:
         """Get most volatile pairs that are actively trading on Binance Futures"""
@@ -3093,4 +3063,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-#https://claude.ai/public/artifacts/19d9df97-9ecf-483d-b253-e54755ae1343
